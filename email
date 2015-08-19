@@ -1,0 +1,158 @@
+package Send;
+
+
+import java.io.IOException;
+import java.sql.DriverManager;
+import java.util.Date;
+import java.sql.*;
+
+import javax.activation.DataHandler;
+import javax.mail.Folder;
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.Part;
+import javax.mail.Session;
+import javax.mail.Store;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+import javax.mail.util.ByteArrayDataSource;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+
+
+
+
+
+/**
+ * Servlet implementation class SendEmail
+ */
+@WebServlet("/SendEmail")
+public class SendEmail extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+       int cid;String mess;
+   // @see HttpServlet#HttpServlet()
+    public SendEmail(int cusid,String ms) {
+    	cid=cusid;
+    	mess=ms;
+    }
+    public void collect(String ms, Message msg)
+			throws MessagingException, IOException, javax.mail.MessagingException {
+String subject = ((javax.mail.Message) msg).getSubject();
+StringBuffer sb = new StringBuffer();
+sb.append("<HTML>\n");
+sb.append("<HEAD>\n");
+sb.append("<TITLE>\n");
+sb.append(subject + "\n");
+sb.append("</TITLE>\n");
+sb.append("</HEAD>\n");
+sb.append("<BODY>\n");
+sb.append("<H1>" + subject + "</H1>" + "\n");
+//get customer name and device details from database
+//the message should read "Hey <custname>, We bring to your attention <ms>"
+sb.append("Valued CUstomer, We bring to your attention that ");
+sb.append(ms);
+sb.append("\n");
+
+
+sb.append("</BODY>\n");
+sb.append("</HTML>\n");
+
+((Part) msg).setDataHandler(new DataHandler(new ByteArrayDataSource(sb.toString(), "text/html")));
+}
+
+
+	// @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
+
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		String  to, subject =  , from = "sushrutsood1618@gmail.com", url = "http://www.gmail.com",user = "ravpu345@gmail.com", password = "+veattitude3";
+    	String mailhost = "smtp.gmail.com";
+    	String mailer = "sendhtml";
+    	String protocol = "http", host = null;
+    	String record = "sent";	// name of folder in which to record mail
+    	
+    	try {
+    	 
+    			Class.forName("oracle.jdbc.driver.OracleDriver");
+    		    Connection con = DriverManager.getConnection("jdbc:oracle:thin:@localhost:1521:orcl", "scott", "tiger");
+    		    Statement st = con.createStatement();
+    		    ResultSet rs =st.executeQuery("select cemail from statusTable where cusid= "+cid);
+    		    to="gtekybzz@sharklasers.com";
+    		   /* while(rs.next())
+    		    {
+    		    	to=rs.getString("cemail");
+    		    }*/
+    		System.out.println("To: " + to);
+    	   
+    	    if (subject == null) {
+    		System.out.print("Subject: ");
+    		System.out.flush();
+    		subject = "Service Notification-Verizon";
+    	    }
+
+    	    java.util.Properties props = System.getProperties();
+    	    // XXX - could use Session.getTransport() and Transport.connect()
+    	    // XXX - assume we're using SMTP
+    	    if (mailhost != null)
+    		props.put("mail.smtp.host", mailhost);
+
+    	    // Get a Session object
+    	    Session session = Session.getInstance(props, null);
+    	    
+    	    // construct the message
+    	    Message msg = (Message) new MimeMessage(session);
+
+    		((javax.mail.Message) msg).setFrom(new InternetAddress(from));
+
+
+    	    ((javax.mail.Message) msg).setRecipients(javax.mail.Message.RecipientType.TO,
+    					InternetAddress.parse(to));
+    	   
+    	    ((javax.mail.Message) msg).setSubject(subject);
+    	    	
+    	    collect(mess, msg);
+
+    	    ((Part) msg).setHeader("X-Mailer", mailer);
+    	    ((javax.mail.Message) msg).setSentDate(new Date());
+
+    	    // send the thing off
+    	    Transport.send((javax.mail.Message) msg);
+
+    	    System.out.println("\nMail was sent successfully.");
+
+    	    // Keep a copy, if requested.
+
+    	    if (record != null) {
+    		// Get a Store object
+    	    	Store store = session.getStore(protocol);
+    	    	if (host != null || user != null || password != null)
+    	    	store.connect(host, user, password);
+    		    else
+    			store.connect();
+
+    		// Get record Folder.  Create if it does not exist.
+    		Folder folder = store.getFolder(record);
+    		if (folder == null) {
+    		    System.err.println("Can't get record folder.");
+    		    System.exit(1);
+    		}
+    		if (!folder.exists())
+    		    folder.create(Folder.HOLDS_MESSAGES);
+
+    		Message[] msgs = new Message[1];
+    		msgs[0] = msg;
+    		folder.appendMessages((javax.mail.Message[]) msgs);
+
+    		System.out.println("Mail was recorded successfully.");
+    	    }
+
+    	} catch (Exception e) {
+    	    e.printStackTrace();
+    	}
+
+}
+}
